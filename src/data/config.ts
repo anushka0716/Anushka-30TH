@@ -11,7 +11,7 @@ export const config: QuizConfig = {
    * Change it (e.g. "anushka-30-final") to start a fresh, empty leaderboard —
    * handy after you've tested the quiz yourself.
    */
-  gameId: 'anushka-30',
+  gameId: 'anushka-30-party',
 
   quizTitle: 'Anushka Turns 30',
   quizKicker: 'How well do you actually know her?',
