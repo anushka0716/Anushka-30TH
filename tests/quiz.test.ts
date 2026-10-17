@@ -44,7 +44,7 @@ describe('question bank', () => {
   });
   it('plays all three rounds in order, and hides a round with no questions', () => {
     expect(activeRounds.map((r) => r.id)).toEqual(['anushka', 'trivia', 'friends']);
-    expect(playableQuestions.filter((q) => q.round === 'friends')).toHaveLength(14);
+    expect(playableQuestions.filter((q) => q.round === 'friends')).toHaveLength(15);
   });
   it('catches broken questions', () => {
     const broken = { ...allQuestions[0], id: 'x', correctId: 'z', options: allQuestions[0].options.slice(0, 3) };

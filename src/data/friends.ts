@@ -9,7 +9,7 @@ import type { Question } from '../core/types.js';
  * "Who said it?" questions use the four of them as the options; the rest
  * can be answered by anyone in the room, including people who didn't reply.
  *
- * HOW TO ADD A QUESTION — copy a block below, give it a new id (f15, f16 …),
+ * HOW TO ADD A QUESTION — copy a block below, give it a new id (f16, f17 …),
  * and edit it. Rules: exactly 4 options, correctId must match an option id,
  * every id unique, commas between questions.
  */
@@ -117,6 +117,15 @@ export const friendQuestions: Question[] = [
     options: people,
     correctId: ARJUN,
     explanation: 'Arjun. Homemade pizza: 0. Domino’s: undefeated.',
+  },
+
+  {
+    id: 'f15', round: 'friends', category: whoSaid, difficulty: 'medium',
+    title: 'A MEMORY OF US',
+    prompt: 'Whose favourite memory with Anushka is putting up an OLX ad… selling Anushka?',
+    options: people,
+    correctId: DECLAN,
+    explanation: 'Declan. Listed as “used, good condition, overthinks”. Sadly, no buyers.',
   },
 
   // ── Anyone can play these ─────────────────────────────────────────────
