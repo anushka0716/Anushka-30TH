@@ -1,4 +1,5 @@
 import type { LeaderboardEntry } from '../../src/core/types.js';
+import { storageStore } from './storageStore.js';
 
 export interface ResultRow {
   gameId: string;
@@ -27,7 +28,7 @@ const TABLE = 'quiz_results';
  * Supabase via its REST API (PostgREST) using plain fetch — no SDK needed.
  * Uses the SERVICE ROLE / SECRET key, which only ever lives in server env vars.
  */
-function supabaseStore(url: string, key: string): Store {
+export function supabaseStore(url: string, key: string): Store {
   const base = `${url.replace(/\/+$/, '')}/rest/v1/${TABLE}`;
   const headers: Record<string, string> = { apikey: key, 'Content-Type': 'application/json' };
   // Legacy JWT keys also go in Authorization; new "sb_secret_…" keys must only be sent as apikey.
@@ -107,7 +108,9 @@ const memoryStore: Store = {
 export function getStore(): Store | null {
   const url = process.env.SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (url && key) return supabaseStore(url, key);
+  // Scores live in Supabase Storage (auto-created, no SQL needed). supabaseStore() is the
+  // table-based alternative if you ever prefer to run supabase/schema.sql.
+  if (url && key) return storageStore(url, key);
   // On Vercel without credentials: no shared leaderboard. Locally: fake it in memory.
   if (process.env.VERCEL) return null;
   return memoryStore;

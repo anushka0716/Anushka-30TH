@@ -222,7 +222,7 @@ describe('server submission', () => {
 
 describe('supabase store', () => {
   it('sends the secret key server-side and maps unique violations', async () => {
-    const { getStore } = await import('../api/_lib/store');
+    const { supabaseStore } = await import('../api/_lib/store');
     process.env.SUPABASE_URL = 'https://proj.supabase.co/';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'sb_secret_test';
     const calls: { url: string; init: RequestInit }[] = [];
@@ -238,7 +238,7 @@ describe('supabase store', () => {
       return replies.shift()!;
     }) as typeof fetch;
     try {
-      const store = getStore()!;
+      const store = supabaseStore('https://proj.supabase.co/', 'sb_secret_test');
       expect(store.kind).toBe('supabase');
       const row = { gameId: 'g', deviceId: 'd', name: 'N', nameKey: 'n', points: 1, correct: 1, total: 2, pct: 50, title: 't', categories: [] };
       expect(await store.insert(row)).toBe('ok');
@@ -267,6 +267,65 @@ describe('supabase store', () => {
       expect(res.status).toBe(503);
     } finally {
       delete process.env.VERCEL;
+    }
+  });
+});
+
+describe('supabase storage store (no SQL needed)', () => {
+  it('creates the bucket, stores one result per phone and per name, and lists the board', async () => {
+    const { storageStore } = await import('../api/_lib/storageStore');
+    const files = new Map<string, string>();
+    let bucket = false;
+    const calls: string[] = [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: string, init: RequestInit = {}) => {
+      const url = new URL(input);
+      const method = init.method ?? 'GET';
+      calls.push(`${method} ${url.pathname}`);
+      expect((init.headers as Record<string, string>).apikey).toBe('sb_secret_test');
+      const p = url.pathname.replace('/storage/v1', '');
+      if (p === '/bucket') {
+        if (bucket) return new Response(JSON.stringify({ statusCode: '409', error: 'Duplicate', message: 'The resource already exists' }), { status: 400 });
+        bucket = true;
+        return new Response('{}', { status: 200 });
+      }
+      if (p.startsWith('/object/list/')) {
+        const { prefix } = JSON.parse(String(init.body));
+        const names = [...files.keys()].filter((k) => k.startsWith(prefix + '/')).map((k) => ({ name: k.slice(prefix.length + 1), id: 'x' }));
+        return new Response(JSON.stringify(names), { status: 200 });
+      }
+      if (p.startsWith('/object/authenticated/quiz-leaderboard/')) {
+        const k = p.replace('/object/authenticated/quiz-leaderboard/', '');
+        return files.has(k) ? new Response(files.get(k)!, { status: 200 }) : new Response('{"error":"not_found"}', { status: 400 });
+      }
+      if (p.startsWith('/object/quiz-leaderboard/') && method === 'POST') {
+        const k = p.replace('/object/quiz-leaderboard/', '');
+        const upsert = (init.headers as Record<string, string>)['x-upsert'] === 'true';
+        if (files.has(k) && !upsert) return new Response(JSON.stringify({ statusCode: '409', error: 'Duplicate' }), { status: 400 });
+        files.set(k, String(init.body));
+        return new Response('{}', { status: 200 });
+      }
+      if (p === '/object/quiz-leaderboard' && method === 'DELETE') {
+        for (const k of JSON.parse(String(init.body)).prefixes) files.delete(k);
+        return new Response('[]', { status: 200 });
+      }
+      return new Response('unexpected', { status: 500 });
+    }) as typeof fetch;
+    try {
+      const store = storageStore('https://proj.supabase.co', 'sb_secret_test');
+      const row = (name: string, deviceId: string, points: number) => ({
+        gameId: 'g', deviceId, name, nameKey: name.toLowerCase(), points, correct: points, total: 56, pct: 1, title: 't', categories: [],
+      });
+      expect(await store.insert(row('Franz', 'dev-1', 30))).toBe('ok');
+      expect(await store.insert(row('Someone', 'dev-1', 50))).toBe('duplicate_device');
+      expect(await store.insert(row('FRANZ', 'dev-2', 40))).toBe('duplicate_name');
+      expect(await store.insert(row('Priya', 'dev-2', 40))).toBe('ok');
+      expect(await store.insert(row('Other game', 'dev-1', 10).gameId ? { ...row('Zed', 'dev-1', 10), gameId: 'other' } : row('x', 'y', 1))).toBe('ok');
+      const board = await store.list('g');
+      expect(board.map((e) => e.name)).toEqual(['Priya', 'Franz']);
+      expect(calls.filter((c) => c === 'POST /storage/v1/bucket')).toHaveLength(1);
+    } finally {
+      globalThis.fetch = realFetch;
     }
   });
 });

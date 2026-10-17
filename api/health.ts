@@ -1,6 +1,7 @@
 // GET /api/health — setup diagnostics. Reports WHETHER settings look right, never their values.
 import { config } from '../src/data/config.js';
 import { json } from './_lib/http.js';
+import { storageSelfTest } from './_lib/storageStore.js';
 
 export async function GET(): Promise<Response> {
   const url = (process.env.SUPABASE_URL ?? '').trim();
@@ -26,12 +27,13 @@ export async function GET(): Promise<Response> {
   };
 
   if (url && key) {
+    report.storageCheck = await storageSelfTest(url, key);
     const headers: Record<string, string> = { apikey: key };
     if (!key.startsWith('sb_')) headers.Authorization = `Bearer ${key}`;
     try {
       const res = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/quiz_results?select=id&limit=1`, { headers });
       const body = await res.text();
-      report.databaseCheck = res.ok
+      report.tableCheckOptional = res.ok
         ? 'ok'
         : res.status === 401 || res.status === 403
           ? `key rejected (${res.status})`
@@ -39,10 +41,10 @@ export async function GET(): Promise<Response> {
             ? 'table quiz_results not found — run supabase/schema.sql'
             : `error ${res.status}: ${body.slice(0, 160)}`;
     } catch (err) {
-      report.databaseCheck = `could not reach Supabase: ${(err as Error).message}`;
+      report.tableCheckOptional = `could not reach Supabase: ${(err as Error).message}`;
     }
   } else {
-    report.databaseCheck = 'skipped — settings missing';
+    report.storageCheck = 'skipped — settings missing';
   }
 
   return json(report, 200);
