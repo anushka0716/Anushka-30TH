@@ -120,12 +120,17 @@ export const friendQuestions: Question[] = [
   },
 
   {
-    id: 'f15', round: 'friends', category: whoSaid, difficulty: 'medium',
+    id: 'f15', round: 'friends', category: general, difficulty: 'medium',
     title: 'A MEMORY OF US',
-    prompt: 'Whose favourite memory with Anushka is putting up an OLX ad… selling Anushka?',
-    options: people,
-    correctId: DECLAN,
-    explanation: 'Declan. Listed as “used, good condition, overthinks”. Sadly, no buyers.',
+    prompt: 'What is Declan’s favourite memory of Anushka?',
+    options: [
+      { id: 'a', text: 'Putting up an ad to sell her on OLX' },
+      { id: 'b', text: 'Eating a fish thali in front of Sir Roy' },
+      { id: 'c', text: 'Shooting a movie around Panjim for a NASA movie competition' },
+      { id: 'd', text: 'Going to site in Morjim' },
+    ],
+    correctId: 'a',
+    explanation: 'The OLX ad. Listed as “used, good condition, overthinks”. Sadly, no buyers.',
   },
 
   // ── Anyone can play these ─────────────────────────────────────────────
