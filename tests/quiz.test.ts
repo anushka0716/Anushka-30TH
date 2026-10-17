@@ -42,8 +42,9 @@ describe('question bank', () => {
     const letters = new Set(t.map((q) => q.correctId));
     expect(letters).toEqual(new Set(['a', 'b', 'c', 'd']));
   });
-  it('hides the empty friends round', () => {
-    expect(activeRounds.map((r) => r.id)).toEqual(['anushka', 'trivia']);
+  it('plays all three rounds in order, and hides a round with no questions', () => {
+    expect(activeRounds.map((r) => r.id)).toEqual(['anushka', 'trivia', 'friends']);
+    expect(playableQuestions.filter((q) => q.round === 'friends')).toHaveLength(14);
   });
   it('catches broken questions', () => {
     const broken = { ...allQuestions[0], id: 'x', correctId: 'z', options: allQuestions[0].options.slice(0, 3) };
@@ -67,8 +68,10 @@ describe('randomisation', () => {
     expect(new Set(plan.order).size).toBe(plan.order.length);
     const rounds = plan.order.map((id) => questionsById.get(id)!.round);
     const firstTrivia = rounds.indexOf('trivia');
+    const firstFriends = rounds.indexOf('friends');
     expect(rounds.slice(0, firstTrivia).every((r) => r === 'anushka')).toBe(true);
-    expect(rounds.slice(firstTrivia).every((r) => r === 'trivia')).toBe(true);
+    expect(rounds.slice(firstTrivia, firstFriends).every((r) => r === 'trivia')).toBe(true);
+    expect(rounds.slice(firstFriends).every((r) => r === 'friends')).toBe(true);
     let moved = 0;
     for (const id of plan.order) {
       const q = questionsById.get(id)!;
@@ -128,7 +131,7 @@ describe('scoring', () => {
     answers.push({ questionId: 'p01', choiceId: 'a', msTaken: 0 }); // duplicate — must not count twice
     const r = scoreRun(answers, questionsById, config);
     expect(r.correct).toBe(22);
-    expect(r.total).toBe(42);
+    expect(r.total).toBe(playableQuestions.length);
     expect(r.points).toBe(22 + 3); // three hard personal questions earn the hard bonus
     expect(r.strongest?.category.startsWith('Anushka')).toBe(true);
     expect(r.weakest?.category.startsWith('Anushka')).toBe(false);
@@ -160,8 +163,8 @@ describe('game flow', () => {
       } else s = game.answer(s, null, t + 999_999, config); // timeout
       t += 1000;
     }
-    expect(rounds).toBe(2);
-    expect(s.answers).toHaveLength(42);
+    expect(rounds).toBe(3);
+    expect(s.answers).toHaveLength(playableQuestions.length);
     expect(s.answers[1].choiceId).toBeNull();
     expect(s.answers[1].msTaken).toBe(config.timerSeconds * 1000); // clamped to the limit
   });
@@ -198,7 +201,7 @@ describe('server submission', () => {
     const res = await post({ deviceId: dev, name: 'Franz', answers: all, points: 9999 });
     const data = await res.json();
     expect(res.status).toBe(200);
-    expect(data.correct).toBe(42);
+    expect(data.correct).toBe(playableQuestions.length);
     expect(data.points).toBe(scoreRun(all, questionsById, config).points); // client-sent "points" ignored
 
     const again = await post({ deviceId: dev, name: 'Someone Else', answers: all });
@@ -213,7 +216,7 @@ describe('server submission', () => {
 
     const board = await (await leaderboard()).json();
     expect(board.entries).toHaveLength(1);
-    expect(board.entries[0]).toMatchObject({ name: 'Franz', correct: 42 });
+    expect(board.entries[0]).toMatchObject({ name: 'Franz', correct: playableQuestions.length });
   });
 });
 

@@ -20,7 +20,7 @@ export const rounds: Round[] = [
   {
     id: 'friends',
     title: 'The Friend Group Lore',
-    subtitle: 'Questions about all of you. Nobody is safe.',
+    subtitle: 'Your group-chat confessions, anonymised. Guess who said what. Nobody is safe.',
     drinkingRule: 'Wrong answer about yourself: finish your drink. Wrong about someone else: one sip.',
   },
 ];
