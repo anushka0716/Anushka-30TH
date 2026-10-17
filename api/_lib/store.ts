@@ -105,8 +105,8 @@ const memoryStore: Store = {
 
 /** Returns the configured store, or null when the shared leaderboard isn't set up (solo mode). */
 export function getStore(): Store | null {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (url && key) return supabaseStore(url, key);
   // On Vercel without credentials: no shared leaderboard. Locally: fake it in memory.
   if (process.env.VERCEL) return null;
